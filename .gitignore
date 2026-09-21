@@ -1,0 +1,7 @@
+# Purpose: Keep generated, local, secret, and cache files out of version control.
+node_modules/
+.local/
+local-data/
+*.sqlite*
+.jev-cache*
+dist/

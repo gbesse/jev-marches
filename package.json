@@ -1,0 +1,49 @@
+{
+  "name": "@gbesse/jev-marches",
+  "version": "0.1.0",
+  "description": "Triage French public procurement notices for a company capability profile.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.mts",
+      "import": "./src/index.mjs"
+    },
+    "./jev": {
+      "import": "./src/jev.mjs",
+      "types": "./src/jev.d.mts"
+    }
+  },
+  "bin": {
+    "jev-marches": "./bin/jev-marches.mjs"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "typecheck": "tsc --noEmit --strict --target ES2022 --module NodeNext docs/public-api-types.mts",
+    "test": "node --test",
+    "demo": "node examples/demo.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gbesse/jev-marches.git"
+  },
+  "keywords": [
+    "jev",
+    "typesafe-ai",
+    "france",
+    "decision-automation"
+  ],
+  "files": [
+    "src",
+    "bin",
+    "docs",
+    "examples",
+    "scripts"
+  ]
+}
