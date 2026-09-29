@@ -26,9 +26,9 @@ function validate(response, questions, model) {
     }
     if (question.type === "score") {
       if (
-        !Number.isInteger(answer.score) ||
+        !Number.isFinite(answer.score) ||
         answer.score < 0 ||
-        answer.score >= question.criteria.length ||
+        answer.score > question.criteria.length - 1 ||
         !validProbability(answer.confidence)
       )
         throw new Error("Invalid score answer");

@@ -28,10 +28,10 @@ test("scores eligible notice", async () => {
     answers: {
       fit: {
         type: "score",
-        score: 2,
-        probabilities: { 0: 0, 1: 0.1, 2: 0.8, 3: 0.1 },
+        score: 2.8,
+        probabilities: { 0: 0, 1: 0, 2: 0.2, 3: 0.8 },
         legend: { 0: "a", 1: "b", 2: "c", 3: "d" },
-        confidence: 0.8,
+        confidence: 0.84,
       },
       blocker: {
         type: "choice",
@@ -49,7 +49,10 @@ test("scores eligible notice", async () => {
     },
     usage: { input_tokens: 1, output_tokens: 0 },
   }));
-  assert.equal((await assessNotice({ id: "1", title: "x" }, {}, p)).fit, 2);
+  const result = await assessNotice({ id: "1", title: "x" }, {}, p);
+  assert.equal(result.fit, 2.8);
+  assert.equal(result.fitConfidence, 0.84);
+  assert.equal(result.fitProbability, 0.84);
 });
 
 const apiRecord = (overrides = {}) => ({

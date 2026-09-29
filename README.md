@@ -2,7 +2,7 @@
 
 **Triage French public procurement notices for a company capability profile.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.0
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.1
 
 Jev Marchés deterministically rejects expired or out-of-scope notices, then ranks the remaining notices by fit and identifies the main bid blocker for review.
 

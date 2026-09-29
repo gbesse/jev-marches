@@ -1,5 +1,12 @@
 # AI change log
 
+## 2026-09-29 — 0.2.1
+
+- Preserve Jev's continuous expected 0–3 fit score and use the explicit answer confidence instead of incorrectly
+  looking up a fractional score as a probability-map category key.
+- Relaxed the local transport validator from integer-only scores to finite scores bounded by the declared scale and
+  added a fractional-score regression.
+
 ## 2026-09-29 — 0.2.0
 
 - Added bounded ingestion from the official open BOAMP/DILA API.

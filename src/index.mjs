@@ -152,7 +152,9 @@ export async function assessNotice(notice, profile, provider, options = {}) {
     noticeId: notice.id,
     eligible: true,
     fit: f.score,
-    fitProbability: f.probabilities[String(f.score)],
+    fitConfidence: f.confidence,
+    // Kept for 0.1 consumers; a continuous expected score is not a probability-map key.
+    fitProbability: f.confidence,
     blocker: b.choice,
     review:
       Math.min(f.confidence, b.confidence) < (options.minConfidence ?? 0.8) ||
