@@ -1,7 +1,7 @@
 {
   "name": "@gbesse/jev-marches",
-  "version": "0.2.1",
-  "description": "Triage French public procurement notices for a company capability profile.",
+  "version": "0.2.2",
+  "description": "Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.",
   "type": "module",
   "license": "MIT",
   "engines": {

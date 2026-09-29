@@ -1,4 +1,4 @@
-// Purpose: Verify transport retry boundaries and strict response validation.
+// Objectif : vérifier les limites de transport et la validation stricte des réponses.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createJevClient } from "../src/jev.mjs";

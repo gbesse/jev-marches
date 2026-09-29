@@ -1,4 +1,4 @@
-# Purpose: Verify the package, public types, tests, and offline demo on supported Node releases.
+# Objectif : vérifier le paquet sur les versions Node.js prises en charge.
 name: Tests
 on:
   push:

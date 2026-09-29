@@ -1,4 +1,4 @@
-// Purpose: Describe normalized notices and public-contract fit decisions.
+// Objectif : décrire les types de l’API métier publique.
 import type { JevProvider } from "./jev.mjs";
 export const BOAMP_API: "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records";
 export interface ProcurementNotice {

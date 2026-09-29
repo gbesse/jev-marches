@@ -1,5 +1,5 @@
-# How it decides
+# Comment la décision est prise
 
-Jev Marchés deterministically rejects expired or out-of-scope notices, then ranks the remaining notices by fit and identifies the main bid blocker for review.
+Les échéances, départements, types de contrats et exclusions explicites restent déterministes. Jev évalue l’adéquation sémantique à un profil déclaré. Le classement produit une file de revue, jamais une décision de soumission.
 
-The exact question and criteria live beside the call in [src/index.mjs](../src/index.mjs), making review and version control straightforward. Dates, identifiers, arithmetic, candidate generation, thresholds and state transitions remain code-owned. Synthetic demo probabilities are illustrative. Calibrate review thresholds on representative human labels before operational use.
+La question et les critères exacts sont versionnés dans [`src/index.mjs`](../src/index.mjs). Les probabilités de la démonstration sont synthétiques. Calibrez les seuils de revue sur des cas français annotés et représentatifs avant tout usage opérationnel.

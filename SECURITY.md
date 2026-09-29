@@ -1,3 +1,3 @@
-# Security policy
+# Sécurité
 
-This package sends configured state to TypeSafe AI only when the caller uses the real provider. Never commit API keys or personal data. Report vulnerabilities privately through GitHub Security Advisories.
+Signalez les vulnérabilités de manière privée avec les avis de sécurité GitHub. Ne joignez jamais à une issue un document de production, une donnée personnelle, un identifiant ou une clé API TypeSafe.

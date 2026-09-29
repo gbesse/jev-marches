@@ -1,4 +1,4 @@
-// Purpose: Demonstrate public-contract triage with synthetic notices.
+// Objectif : démontrer la frontière de décision sans appel réseau.
 import { rankNotices } from "../src/index.mjs";
 import { createFakeProvider } from "../src/jev.mjs";
 const p = createFakeProvider(() => ({

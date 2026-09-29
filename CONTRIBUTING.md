@@ -1,3 +1,3 @@
-# Contributing
+# Contribuer
 
-Open an issue before large changes. Keep decisions bounded, fixtures synthetic, provider calls injectable, and all four validation commands passing. Contributions are licensed under MIT.
+Ouvrez une issue avant toute modification importante. Conservez les identifiants, dates, calculs, filtres de candidats et seuils d’action dans du code ordinaire. Ajoutez des cas français représentatifs pour toute évolution sémantique. Exécutez les commandes de validation du README avant une pull request.

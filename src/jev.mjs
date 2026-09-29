@@ -1,4 +1,4 @@
-// Purpose: Provide a validated Jev HTTP client and a deterministic offline test double.
+// Objectif : fournir un client Jev validé et un double de test hors ligne déterministe.
 const MODEL = "jev-1.13.0";
 
 function validProbability(value) {

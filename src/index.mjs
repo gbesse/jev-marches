@@ -1,4 +1,4 @@
-// Purpose: Fetch official BOAMP notices and triage them against a company profile.
+// Objectif : implémenter la frontière de décision métier propre au dépôt.
 import { readFile } from "node:fs/promises";
 
 export const BOAMP_API =

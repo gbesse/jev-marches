@@ -1,4 +1,4 @@
-// Purpose: Make one opt-in real Jev request with synthetic data and print its metered usage.
+// Objectif : effectuer un appel Jev synthétique uniquement sur demande explicite.
 import { createJevClient } from '../src/jev.mjs';
 
 const client = createJevClient();

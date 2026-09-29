@@ -1,4 +1,4 @@
-// Purpose: Syntax-check every JavaScript module shipped by the repository.
+// Objectif : vérifier la syntaxe de chaque module JavaScript livré.
 import { readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";

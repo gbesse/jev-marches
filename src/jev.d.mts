@@ -1,4 +1,4 @@
-// Purpose: Type the validated Jev provider and its offline test double.
+// Objectif : typer le fournisseur Jev validé et son double de test hors ligne.
 export type JevRequest = {
   state: unknown;
   questions: Record<string, unknown>;
