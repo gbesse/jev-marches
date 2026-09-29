@@ -1,6 +1,6 @@
 {
   "name": "@gbesse/jev-marches",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Triage French public procurement notices for a company capability profile.",
   "type": "module",
   "license": "MIT",

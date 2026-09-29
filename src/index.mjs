@@ -1,5 +1,102 @@
-// Purpose: Triage normalized French public-procurement notices against a company profile.
+// Purpose: Fetch official BOAMP notices and triage them against a company profile.
 import { readFile } from "node:fs/promises";
+
+export const BOAMP_API =
+  "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records";
+
+const strings = (value) =>
+  (Array.isArray(value) ? value : value == null ? [] : [value])
+    .map(String)
+    .filter(Boolean);
+
+function officialNoticeUrl(record) {
+  const fallback = `https://www.boamp.fr/pages/avis/?q=idweb:${encodeURIComponent(record.idweb ?? record.id)}`;
+  const url = new URL(record.url_avis || fallback);
+  if (
+    url.protocol !== "https:" ||
+    !(url.hostname === "boamp.fr" || url.hostname.endsWith(".boamp.fr"))
+  )
+    throw new TypeError("BOAMP record contains a non-official link");
+  return url.href;
+}
+
+/** Fetch the newest notices from the open, official BOAMP/DILA API and normalize the fields used for triage. */
+export async function fetchBoampNotices({
+  limit = 20,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = 15_000,
+} = {}) {
+  if (!(Number.isInteger(limit) && limit >= 1 && limit <= 100))
+    throw new TypeError("limit must be an integer between 1 and 100");
+  if (typeof fetchImpl !== "function")
+    throw new TypeError("fetchImpl must be a function");
+  const url = new URL(BOAMP_API);
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("order_by", "dateparution desc");
+  url.searchParams.set(
+    "select",
+    "id,idweb,objet,dateparution,datelimitereponse,nomacheteur,code_departement,descripteur_code,descripteur_libelle,nature_libelle,url_avis,type_marche",
+  );
+  const response = await fetchImpl(url, {
+    headers: {
+      accept: "application/json",
+      "user-agent": "jev-marches/0.2 (+https://github.com/gbesse/jev-marches)",
+    },
+    redirect: "follow",
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) throw new Error(`BOAMP API unavailable (${response.status})`);
+  const body = await response.json();
+  if (!Array.isArray(body.results))
+    throw new Error("BOAMP API returned an invalid result envelope");
+  const seen = new Set();
+  const notices = [];
+  for (const record of body.results) {
+    const id = String(record.idweb ?? record.id ?? "").trim();
+    const title = String(record.objet ?? "").replace(/\s+/g, " ").trim();
+    if (!id || !title || seen.has(id)) continue;
+    seen.add(id);
+    const deadline = record.datelimitereponse
+      ? new Date(record.datelimitereponse)
+      : null;
+    const published = record.dateparution ? new Date(record.dateparution) : null;
+    if (deadline && Number.isNaN(deadline.valueOf())) continue;
+    const buyer = String(record.nomacheteur ?? "").trim() || null;
+    const departments = strings(record.code_departement);
+    const descriptors = strings(record.descripteur_libelle);
+    const contractTypes = strings(record.type_marche);
+    notices.push({
+      id,
+      kind: "procurement-notice",
+      title: title.slice(0, 2_000),
+      text: [
+        title,
+        buyer ? `Acheteur: ${buyer}` : null,
+        descriptors.length ? `Descripteurs: ${descriptors.join(", ")}` : null,
+        contractTypes.length ? `Type: ${contractTypes.join(", ")}` : null,
+        departments.length ? `Départements: ${departments.join(", ")}` : null,
+        deadline ? `Date limite: ${deadline.toISOString()}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 20_000),
+      buyer,
+      departments,
+      descriptors,
+      contractTypes,
+      deadline: deadline?.toISOString() ?? null,
+      date:
+        published && !Number.isNaN(published.valueOf())
+          ? published.toISOString()
+          : null,
+      sourceUrl: officialNoticeUrl(record),
+      source: "BOAMP · DILA",
+    });
+  }
+  if (!notices.length) throw new Error("BOAMP API returned no usable notice");
+  return notices;
+}
+
 export function prefilter(notice, profile, now = new Date()) {
   if (!notice?.id || !notice?.title)
     throw new TypeError("notice needs id and title");

@@ -2,9 +2,19 @@
 
 **Triage French public procurement notices for a company capability profile.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · Public alpha
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.0
 
 Jev Marchés deterministically rejects expired or out-of-scope notices, then ranks the remaining notices by fit and identifies the main bid blocker for review.
+
+The library now fetches the newest notices directly from the open BOAMP/DILA API and normalizes buyer, deadline,
+department, descriptors, contract type and the official evidence link before any model call.
+
+```js
+import { fetchBoampNotices, rankNotices } from "@gbesse/jev-marches";
+
+const notices = await fetchBoampNotices({ limit: 20 });
+const ranked = await rankNotices(notices, companyProfile, provider);
+```
 
 ## Try it in 30 seconds
 
@@ -34,7 +44,8 @@ The library keeps identifiers, dates, arithmetic and thresholds in ordinary code
 
 ## Boundaries
 
-It does not download tender documents, prepare bids, or provide legal advice. BOAMP ingestion is exposed as an adapter contract and the first release accepts normalized JSON notices.
+It reads BOAMP notice metadata, not the complete tender dossier. It does not prepare bids or provide legal advice.
+Open the official notice and procurement documents before deciding whether to bid.
 
 Jev is strongest in English; French cases need evaluation on representative labels. It can read instructions literally, struggle with negations, dates and arithmetic, and degrade with irrelevant state. This project makes no live quality benchmark claim.
 
