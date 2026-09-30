@@ -2,7 +2,7 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.3 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.4 · Documentation française
 
 Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. Il écarte par code les avis expirés ou hors périmètre, puis classe les autres selon leur adéquation et le principal obstacle à une réponse.
 
@@ -73,10 +73,20 @@ console.log(JSON.stringify(resultat, null, 2));
 Lancez-le avec :
 
 ```sh
-npm run demo
+npm run demo:principal
 ```
 
 Résultat à repérer : `fit: 3`.
+
+### Cas limite à tester
+
+Un avis dont la date limite est dépassée est écarté localement. Le code se trouve dans [`examples/cas-limite.mjs`](examples/cas-limite.mjs).
+
+```sh
+npm run demo:limite
+```
+
+Résultat à repérer : `eligible: false · reason: deadline_passed`. La commande `npm run demo` exécute les deux exemples.
 
 ## Utilisation de la bibliothèque
 

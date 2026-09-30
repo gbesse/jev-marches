@@ -1,5 +1,10 @@
 # Journal des modifications assistées par IA
 
+## 0.2.4 — 2026-09-30
+
+- Ajout d’un second exemple consacré aux cas limites et aux garde-fous métier.
+- `npm run demo` exécute désormais les scénarios nominal et limite avec assertions.
+
 ## 0.2.3 — 2026-09-29
 
 - Ajout d’un exemple exécutable, lisible et directement copiable dans le README.

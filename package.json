@@ -1,6 +1,6 @@
 {
   "name": "@gbesse/jev-marches",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.",
   "type": "module",
   "license": "MIT",
@@ -24,7 +24,9 @@
     "check": "node scripts/check.mjs",
     "typecheck": "tsc --noEmit --strict --target ES2022 --module NodeNext docs/public-api-types.mts",
     "test": "node --test",
-    "demo": "node examples/demo.mjs"
+    "demo": "node examples/demo.mjs && node examples/cas-limite.mjs",
+    "demo:principal": "node examples/demo.mjs",
+    "demo:limite": "node examples/cas-limite.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
