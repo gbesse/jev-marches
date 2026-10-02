@@ -2,7 +2,7 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.4 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.5 · Documentation française
 
 Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. Il écarte par code les avis expirés ou hors périmètre, puis classe les autres selon leur adéquation et le principal obstacle à une réponse.
 
@@ -116,6 +116,12 @@ TYPESAFE_API_KEY=... node scripts/live-smoke.mjs
 ```
 
 N’envoyez jamais de secret, de donnée personnelle ni de dossier sensible non expurgé. Évaluez le comportement sur un jeu représentatif de cas français avant tout usage opérationnel.
+
+## Parcours comparatif
+
+`npm run demo:parcours` produit un rapport JSON partageable pour **jev-marches** : le scénario principal et la frontière déterministe. Chaque scénario garde sa sortie propre et échoue si son assertion ne passe plus. Les données et probabilités sont synthétiques ; aucun appel Jev n’est effectué.
+
+Cette vue permet de comparer rapidement les chemins de décision et de choisir quel exemple adapter à vos propres données sourcées.
 
 ## Validation
 
