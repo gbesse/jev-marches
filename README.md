@@ -2,7 +2,7 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.0 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.1 · Documentation française
 
 Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. **Marchés Radar** transforme ensuite la veille en une liste bornée d’actions `pursue`, `investigate` ou `ignore`, avec motif, source officielle et budget Jev explicite.
 
@@ -43,9 +43,9 @@ const radar = await buildOpportunityRadar(
 console.log(renderOpportunityRadar(radar, { companyName: "Mon entreprise" }));
 ```
 
-Le radar applique d’abord les contraintes certaines — échéance, délai disponible, CPV, géographie, type de marché, acheteurs exclus et montant maximal. Jev ne voit que les avis restants. La politique utilise la masse de probabilité complète des classes d’adéquation, pas une fausse « probabilité de gagner ».
+Le radar applique d’abord les contraintes certaines — échéance, délai disponible, CPV, géographie, type de marché, acheteurs exclus et montant maximal. Il classe ensuite les avis éligibles par affinité lexicale déterministe afin de consacrer le budget Jev aux meilleurs candidats. La politique utilise la masse de probabilité complète des classes d’adéquation, pas une fausse « probabilité de gagner ».
 
-Chaque rapport conserve toutes les décisions pour l’audit, mais ne présente que les meilleures actions dans `opportunities`. `maxCalls` borne strictement le coût : les avis au-delà du budget passent en `investigate` au lieu d’être silencieusement perdus.
+Chaque rapport conserve toutes les décisions pour l’audit, mais ne présente que les meilleures actions effectivement évaluées dans `opportunities`. `maxCalls` borne strictement le coût : les avis au-delà du budget sont comptés dans `budget.deferredNotices`, restent auditables avec le motif `budget_exhausted` et ne polluent jamais la liste actionnable.
 
 ## Exemple exécutable
 

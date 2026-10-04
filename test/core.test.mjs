@@ -6,6 +6,7 @@ import {
   prefilter,
   assessNotice,
   buildOpportunityRadar,
+  candidateAffinity,
   decidePursuit,
   fetchBoampNotices,
 } from "../src/index.mjs";
@@ -126,6 +127,28 @@ test("turns assessments into conservative pursue, investigate and ignore actions
   );
 });
 
+test("ranks eligible candidates deterministically before spending the provider budget", () => {
+  const profile = {
+    capabilities: "Distribution de courrier, colis et logistique",
+  };
+  assert.ok(
+    candidateAffinity(
+      {
+        title: "Distribution de plis et colis",
+        text: "Logistique du dernier kilomètre",
+      },
+      profile,
+    ) >
+      candidateAffinity(
+        {
+          title: "Entretien des espaces verts",
+          text: "Tonte et élagage",
+        },
+        profile,
+      ),
+  );
+});
+
 test("builds a ranked evidence-linked radar and never exceeds its call budget", async () => {
   let calls = 0;
   const provider = createFakeProvider(({ state }) => {
@@ -180,12 +203,69 @@ test("builds a ranked evidence-linked radar and never exceeds its call budget", 
     { maxCalls: 1, now: new Date("2026-01-01"), maxResults: 5 },
   );
   assert.equal(calls, 1);
-  assert.deepEqual(radar.budget, { maxCalls: 1, usedCalls: 1 });
+  assert.deepEqual(radar.budget, {
+    maxCalls: 1,
+    usedCalls: 1,
+    deferredNotices: 1,
+  });
   assert.deepEqual(radar.counts, { pursue: 1, investigate: 1, ignore: 1 });
   assert.equal(radar.opportunities[0].noticeId, "strong");
   assert.equal(radar.opportunities[0].status, "pursue");
   assert.match(radar.opportunities[0].evidence.sourceUrl, /boamp\.fr/);
-  assert.equal(radar.opportunities[1].reason, "budget_exhausted");
+  assert.equal(radar.opportunities.length, 1);
+  assert.equal(
+    radar.decisions.find((row) => row.noticeId === "budgeted").reason,
+    "budget_exhausted",
+  );
+});
+
+test("spends a one-call budget on the most relevant eligible candidate", async () => {
+  const called = [];
+  const provider = createFakeProvider(({ state }) => {
+    called.push(state.notice.id);
+    return {
+      model: "jev-1.13.0",
+      answers: {
+        fit: {
+          type: "score",
+          score: 2.9,
+          probabilities: { 0: 0, 1: 0, 2: 0.1, 3: 0.9 },
+          legend: { 0: "a", 1: "b", 2: "c", 3: "d" },
+          confidence: 0.9,
+        },
+        blocker: {
+          type: "choice",
+          choice: "none",
+          probabilities: {
+            none: 1,
+            deadline: 0,
+            qualification: 0,
+            geography: 0,
+            capacity: 0,
+            unknown: 0,
+          },
+          confidence: 1,
+        },
+      },
+      usage: { input_tokens: 1, output_tokens: 0 },
+    };
+  });
+  const radar = await buildOpportunityRadar(
+    [
+      { id: "gardening", title: "Entretien des espaces verts" },
+      {
+        id: "postal",
+        title: "Distribution de courrier et colis",
+        text: "Logistique du dernier kilomètre",
+      },
+    ],
+    { capabilities: "Courrier, colis et logistique" },
+    provider,
+    { maxCalls: 1 },
+  );
+  assert.deepEqual(called, ["postal"]);
+  assert.equal(radar.opportunities[0].noticeId, "postal");
+  assert.equal(radar.budget.deferredNotices, 1);
 });
 
 test("keeps the batch actionable when one provider call fails", async () => {
@@ -196,7 +276,11 @@ test("keeps the batch actionable when one provider call fails", async () => {
     provider,
     { maxCalls: 1, now: new Date("2026-01-01") },
   );
-  assert.deepEqual(radar.budget, { maxCalls: 1, usedCalls: 1 });
+  assert.deepEqual(radar.budget, {
+    maxCalls: 1,
+    usedCalls: 1,
+    deferredNotices: 0,
+  });
   assert.equal(radar.usage.requests, 1);
   assert.equal(radar.decisions[0].status, "investigate");
   assert.equal(radar.decisions[0].reason, "provider_error");

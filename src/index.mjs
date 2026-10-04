@@ -16,6 +16,57 @@ const normalize = (value) =>
     .toLowerCase()
     .trim();
 
+const STOP_WORDS = new Set([
+  "avec",
+  "aux",
+  "dans",
+  "des",
+  "les",
+  "pour",
+  "une",
+  "par",
+  "sur",
+  "service",
+  "services",
+  "prestation",
+  "prestations",
+  "marche",
+]);
+
+const tokens = (value) =>
+  normalize(Array.isArray(value) ? value.join(" ") : value)
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
+
+const tokenMatches = (left, right) =>
+  left === right ||
+  (left.length >= 5 && right.length >= 5 &&
+    (left.startsWith(right) || right.startsWith(left)));
+
+/** Cheap, deterministic retrieval score used only to decide which eligible notices consume the call budget. */
+export function candidateAffinity(notice, profile) {
+  const wanted = [
+    ...tokens(profile.capabilities),
+    ...tokens(profile.activityCode),
+  ];
+  if (!wanted.length) return 0;
+  const groups = [
+    [tokens(notice.title), 3],
+    [tokens(notice.descriptors), 2],
+    [tokens(notice.text), 1],
+  ];
+  let score = 0;
+  for (const wantedToken of new Set(wanted))
+    score += Math.max(
+      0,
+      ...groups.map(([haystack, weight]) =>
+        haystack.some((token) => tokenMatches(wantedToken, token)) ? weight : 0,
+      ),
+    );
+  return score / new Set(wanted).size;
+}
+
 const overlaps = (left = [], right = []) =>
   left.some((a) =>
     right.some(
@@ -355,8 +406,24 @@ export async function buildOpportunityRadar(
   const rows = [];
   let calls = 0;
   const usage = { input_tokens: 0, output_tokens: 0, requests: 0 };
-  for (const notice of notices) {
-    const deterministic = prefilter(notice, profile, now);
+  const prepared = notices.map((notice, index) => ({
+    notice,
+    index,
+    deterministic: prefilter(notice, profile, now),
+    retrievalScore: candidateAffinity(notice, profile),
+  }));
+  const ordered = [
+    ...prepared.filter((item) => !item.deterministic.eligible),
+    ...prepared
+      .filter((item) => item.deterministic.eligible)
+      .sort(
+        (left, right) =>
+          right.retrievalScore - left.retrievalScore ||
+          left.index - right.index,
+      ),
+  ];
+  for (const item of ordered) {
+    const { notice, deterministic, retrievalScore } = item;
     let assessment;
     if (!deterministic.eligible) {
       assessment = {
@@ -369,6 +436,7 @@ export async function buildOpportunityRadar(
         noticeId: notice.id,
         eligible: true,
         reason: "budget_exhausted",
+        retrievalScore,
         deterministic: true,
       };
     } else {
@@ -403,6 +471,7 @@ export async function buildOpportunityRadar(
         minDecisionMass,
       }),
       assessment,
+      retrievalScore,
       evidence: noticeEvidence(notice),
     });
   }
@@ -423,11 +492,20 @@ export async function buildOpportunityRadar(
     schemaVersion: 1,
     policyVersion: RADAR_POLICY_VERSION,
     generatedAt: new Date(now).toISOString(),
-    budget: { maxCalls, usedCalls: calls },
+    budget: {
+      maxCalls,
+      usedCalls: calls,
+      deferredNotices: rows.filter(
+        (row) => row.reason === "budget_exhausted",
+      ).length,
+    },
     counts,
     usage,
     opportunities: rows
-      .filter((row) => row.status !== "ignore")
+      .filter(
+        (row) =>
+          row.status !== "ignore" && row.reason !== "budget_exhausted",
+      )
       .slice(0, maxResults),
     decisions: rows,
   };
