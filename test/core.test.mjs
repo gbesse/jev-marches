@@ -207,6 +207,7 @@ test("builds a ranked evidence-linked radar and never exceeds its call budget", 
     maxCalls: 1,
     usedCalls: 1,
     deferredNotices: 1,
+    reusedNotices: 0,
   });
   assert.deepEqual(radar.counts, { pursue: 1, investigate: 0, ignore: 1 });
   assert.equal(radar.opportunities[0].noticeId, "strong");
@@ -268,6 +269,41 @@ test("spends a one-call budget on the most relevant eligible candidate", async (
   assert.equal(radar.budget.deferredNotices, 1);
 });
 
+test("reuses unchanged semantic assessments without consuming the provider budget", async () => {
+  let calls = 0;
+  const previous = {
+    noticeId: "cached",
+    eligible: true,
+    fit: 2.8,
+    fitConfidence: 0.8,
+    fitStrongProbability: 0.95,
+    fitWeakProbability: 0.05,
+    blocker: "none",
+    blockerProbability: 0.9,
+    deterministic: false,
+    usage: { input_tokens: 100, output_tokens: 0 },
+  };
+  const radar = await buildOpportunityRadar(
+    [{ id: "cached", title: "Distribution de colis" }],
+    { capabilities: "Distribution de colis" },
+    { decide: async () => { calls++; throw new Error("must not run"); } },
+    { maxCalls: 0, previousAssessments: { cached: previous } },
+  );
+  assert.equal(calls, 0);
+  assert.deepEqual(radar.budget, {
+    maxCalls: 0,
+    usedCalls: 0,
+    deferredNotices: 0,
+    reusedNotices: 1,
+  });
+  assert.equal(radar.opportunities[0].assessment.reused, true);
+  assert.deepEqual(radar.usage, {
+    input_tokens: 0,
+    output_tokens: 0,
+    requests: 0,
+  });
+});
+
 test("keeps the batch actionable when one provider call fails", async () => {
   const provider = { decide: async () => { throw new Error("temporary outage"); } };
   const radar = await buildOpportunityRadar(
@@ -280,6 +316,7 @@ test("keeps the batch actionable when one provider call fails", async () => {
     maxCalls: 1,
     usedCalls: 1,
     deferredNotices: 0,
+    reusedNotices: 0,
   });
   assert.equal(radar.usage.requests, 1);
   assert.equal(radar.decisions[0].status, "investigate");

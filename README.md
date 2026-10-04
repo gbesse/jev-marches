@@ -2,7 +2,7 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.2 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.3 · Documentation française
 
 Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. **Marchés Radar** transforme ensuite la veille en une liste bornée d’actions `pursue`, `investigate` ou `ignore`, avec motif, source officielle et budget Jev explicite.
 
@@ -46,6 +46,8 @@ console.log(renderOpportunityRadar(radar, { companyName: "Mon entreprise" }));
 Le radar applique d’abord les contraintes certaines — échéance, délai disponible, CPV, géographie, type de marché, acheteurs exclus et montant maximal. Il classe ensuite les avis éligibles par affinité lexicale déterministe afin de consacrer le budget Jev aux meilleurs candidats. La politique utilise la masse de probabilité complète des classes d’adéquation, pas une fausse « probabilité de gagner ».
 
 Chaque rapport conserve toutes les décisions pour l’audit, mais ne présente que les meilleures actions effectivement évaluées dans `opportunities`. `maxCalls` borne strictement le coût : les avis au-delà du budget sont comptés dans `budget.deferredNotices`, restent auditables avec le motif `budget_exhausted` et ne polluent jamais la liste actionnable.
+
+Une intégration incrémentale peut passer ses évaluations inchangées dans `previousAssessments`. Elles sont validées, marquées `reused: true`, comptées dans `budget.reusedNotices` et ne consomment ni appel ni jeton. Le rapprochement entre une source actuelle et une évaluation antérieure reste sous la responsabilité de l’appelant ; chaque preuve expose une empreinte SHA-256 du contenu décisionnel de l’avis.
 
 ## Exemple exécutable
 

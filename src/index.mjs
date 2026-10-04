@@ -1,5 +1,6 @@
 // Objectif : implémenter la frontière de décision métier propre au dépôt.
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 export const BOAMP_API =
   "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records";
@@ -379,7 +380,36 @@ function noticeEvidence(notice) {
     contractTypes: notice.contractTypes ?? [],
     sourceUrl: notice.sourceUrl ?? null,
     source: notice.source ?? null,
+    fingerprint: createHash("sha256")
+      .update(
+        JSON.stringify({
+          id: notice.id,
+          title: notice.title,
+          text: notice.text ?? null,
+          buyer: notice.buyer ?? null,
+          deadline: notice.deadline ?? null,
+          departments: notice.departments ?? [],
+          descriptors: notice.descriptors ?? [],
+          cpv: notice.cpv ?? [],
+          contractTypes: notice.contractTypes ?? [],
+          sourceUrl: notice.sourceUrl ?? null,
+        }),
+      )
+      .digest("hex"),
   };
+}
+
+function reusableAssessment(value, noticeId) {
+  return (
+    value?.noticeId === noticeId &&
+    value.eligible === true &&
+    value.deterministic === false &&
+    Number.isFinite(value.fit) &&
+    Number.isFinite(value.fitStrongProbability) &&
+    Number.isFinite(value.fitWeakProbability) &&
+    typeof value.blocker === "string" &&
+    value.reason !== "provider_error"
+  );
 }
 
 /** Build one auditable daily opportunity inbox under an explicit provider-call budget. */
@@ -395,6 +425,7 @@ export async function buildOpportunityRadar(
     minDecisionMass = 0.75,
     pursueFit = 2.3,
     ignoreFit = 1.25,
+    previousAssessments = {},
   } = {},
 ) {
   if (!Array.isArray(notices) || notices.length > 100)
@@ -405,6 +436,7 @@ export async function buildOpportunityRadar(
     throw new TypeError("maxResults must be an integer between 1 and 20");
   const rows = [];
   let calls = 0;
+  let reusedNotices = 0;
   const usage = { input_tokens: 0, output_tokens: 0, requests: 0 };
   const prepared = notices.map((notice, index) => ({
     notice,
@@ -431,6 +463,13 @@ export async function buildOpportunityRadar(
         ...deterministic,
         deterministic: true,
       };
+    } else if (reusableAssessment(previousAssessments[notice.id], notice.id)) {
+      assessment = {
+        ...structuredClone(previousAssessments[notice.id]),
+        usage: { input_tokens: 0, output_tokens: 0 },
+        reused: true,
+      };
+      reusedNotices++;
     } else if (calls >= maxCalls) {
       assessment = {
         noticeId: notice.id,
@@ -501,6 +540,7 @@ export async function buildOpportunityRadar(
       deferredNotices: rows.filter(
         (row) => row.reason === "budget_exhausted",
       ).length,
+      reusedNotices,
     },
     counts,
     usage,
@@ -519,7 +559,7 @@ export function renderOpportunityRadar(radar, { companyName = "Entreprise" } = {
     `# Marchés Radar · ${companyName}`,
     "",
     `${radar.counts.pursue} à poursuivre · ${radar.counts.investigate} à investiguer · ${radar.counts.ignore} ignorés`,
-    `Budget Jev : ${radar.budget.usedCalls}/${radar.budget.maxCalls} appels${radar.budget.deferredNotices ? ` · ${radar.budget.deferredNotices} avis différés` : ""} · politique ${radar.policyVersion}`,
+    `Budget Jev : ${radar.budget.usedCalls}/${radar.budget.maxCalls} appels${radar.budget.reusedNotices ? ` · ${radar.budget.reusedNotices} résultats réutilisés` : ""}${radar.budget.deferredNotices ? ` · ${radar.budget.deferredNotices} avis différés` : ""} · politique ${radar.policyVersion}`,
     "",
   ];
   if (!radar.opportunities.length)
