@@ -370,6 +370,25 @@ export function decidePursuit(
   };
 }
 
+export function fingerprintNotice(notice) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        id: notice.id,
+        title: notice.title,
+        text: notice.text ?? null,
+        buyer: notice.buyer ?? null,
+        deadline: notice.deadline ?? null,
+        departments: notice.departments ?? [],
+        descriptors: notice.descriptors ?? [],
+        cpv: notice.cpv ?? [],
+        contractTypes: notice.contractTypes ?? [],
+        sourceUrl: notice.sourceUrl ?? null,
+      }),
+    )
+    .digest("hex");
+}
+
 function noticeEvidence(notice) {
   return {
     title: notice.title,
@@ -380,22 +399,7 @@ function noticeEvidence(notice) {
     contractTypes: notice.contractTypes ?? [],
     sourceUrl: notice.sourceUrl ?? null,
     source: notice.source ?? null,
-    fingerprint: createHash("sha256")
-      .update(
-        JSON.stringify({
-          id: notice.id,
-          title: notice.title,
-          text: notice.text ?? null,
-          buyer: notice.buyer ?? null,
-          deadline: notice.deadline ?? null,
-          departments: notice.departments ?? [],
-          descriptors: notice.descriptors ?? [],
-          cpv: notice.cpv ?? [],
-          contractTypes: notice.contractTypes ?? [],
-          sourceUrl: notice.sourceUrl ?? null,
-        }),
-      )
-      .digest("hex"),
+    fingerprint: fingerprintNotice(notice),
   };
 }
 

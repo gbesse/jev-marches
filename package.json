@@ -1,6 +1,6 @@
 {
   "name": "@gbesse/jev-marches",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.",
   "type": "module",
   "license": "MIT",

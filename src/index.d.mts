@@ -39,6 +39,7 @@ export function candidateAffinity(
   notice: Record<string, any>,
   profile: CompanyOpportunityProfile,
 ): number;
+export function fingerprintNotice(notice: Record<string, any>): string;
 export function assessNotice(
   notice: Record<string, any>,
   profile: Record<string, any>,
