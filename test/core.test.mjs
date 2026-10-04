@@ -9,6 +9,7 @@ import {
   candidateAffinity,
   decidePursuit,
   fetchBoampNotices,
+  fingerprintNotice,
 } from "../src/index.mjs";
 import { createFakeProvider } from "../src/jev.mjs";
 test("rejects expired notices", () =>
@@ -146,6 +147,23 @@ test("ranks eligible candidates deterministically before spending the provider b
         },
         profile,
       ),
+  );
+});
+
+test("fingerprints only the notice content that can affect a radar decision", () => {
+  const notice = {
+    id: "x",
+    title: "Distribution de colis",
+    text: "Livraison quotidienne",
+    sourceUrl: "https://www.boamp.fr/pages/avis/",
+  };
+  assert.equal(
+    fingerprintNotice({ ...notice, localDisplayState: "open" }),
+    fingerprintNotice(notice),
+  );
+  assert.notEqual(
+    fingerprintNotice({ ...notice, text: "Livraison hebdomadaire" }),
+    fingerprintNotice(notice),
   );
 });
 
