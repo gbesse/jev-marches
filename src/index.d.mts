@@ -74,12 +74,18 @@ export function buildOpportunityRadar(
     pursueFit?: number;
     ignoreFit?: number;
     minDecisionMass?: number;
+    previousAssessments?: Record<string, Record<string, any>>;
   },
 ): Promise<{
   schemaVersion: 1;
   policyVersion: string;
   generatedAt: string;
-  budget: { maxCalls: number; usedCalls: number; deferredNotices: number };
+  budget: {
+    maxCalls: number;
+    usedCalls: number;
+    deferredNotices: number;
+    reusedNotices: number;
+  };
   counts: Record<PursuitStatus, number>;
   usage: { input_tokens: number; output_tokens: number; requests: number };
   opportunities: any[];
