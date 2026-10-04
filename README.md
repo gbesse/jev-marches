@@ -2,9 +2,9 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.2.5 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.0 · Documentation française
 
-Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. Il écarte par code les avis expirés ou hors périmètre, puis classe les autres selon leur adéquation et le principal obstacle à une réponse.
+Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. **Marchés Radar** transforme ensuite la veille en une liste bornée d’actions `pursue`, `investigate` ou `ignore`, avec motif, source officielle et budget Jev explicite.
 
 ## Démarrage rapide
 
@@ -16,6 +16,36 @@ npm run demo
 ```
 
 La démonstration utilise uniquement des données et probabilités synthétiques. Elle n’effectue aucun appel réseau et ne constitue pas une mesure de qualité de Jev.
+
+## Marchés Radar
+
+```js
+import {
+  buildOpportunityRadar,
+  fetchBoampNotices,
+  renderOpportunityRadar,
+} from "@gbesse/jev-marches";
+import { createJevClient } from "@gbesse/jev-marches/jev";
+
+const notices = await fetchBoampNotices({ limit: 20 });
+const radar = await buildOpportunityRadar(
+  notices,
+  {
+    capabilities: ["Développement d’API", "Cybersécurité"],
+    departments: ["75", "92"],
+    contractTypes: ["SERVICES"],
+    minimumLeadDays: 10,
+  },
+  createJevClient(),
+  { maxCalls: 12, maxResults: 5 },
+);
+
+console.log(renderOpportunityRadar(radar, { companyName: "Mon entreprise" }));
+```
+
+Le radar applique d’abord les contraintes certaines — échéance, délai disponible, CPV, géographie, type de marché, acheteurs exclus et montant maximal. Jev ne voit que les avis restants. La politique utilise la masse de probabilité complète des classes d’adéquation, pas une fausse « probabilité de gagner ».
+
+Chaque rapport conserve toutes les décisions pour l’audit, mais ne présente que les meilleures actions dans `opportunities`. `maxCalls` borne strictement le coût : les avis au-delà du budget passent en `investigate` au lieu d’être silencieusement perdus.
 
 ## Exemple exécutable
 
@@ -86,7 +116,7 @@ Un avis dont la date limite est dépassée est écarté localement. Le code se t
 npm run demo:limite
 ```
 
-Résultat à repérer : `eligible: false · reason: deadline_passed`. La commande `npm run demo` exécute les deux exemples.
+Résultat à repérer : `eligible: false · reason: deadline_passed`. La commande `npm run demo` exécute les exemples de classement, de frontière et de radar complet.
 
 ## Utilisation de la bibliothèque
 
@@ -115,6 +145,8 @@ Les appels réels sont facultatifs et payants. Le client fixe le modèle `jev-1.
 TYPESAFE_API_KEY=... node scripts/live-smoke.mjs
 ```
 
+Le benchmark versionné s’exécute sans réseau avec `npm run benchmark:offline`, ou avec Jev réel via `npm run benchmark` lorsque `TYPESAFE_API_KEY` est chargé dans l’environnement. Le contrôle réel du 4 octobre 2026 obtient 12/12 sur le petit jeu synthétique de cas évidents, avec zéro faux `ignore` et 5 987 jetons d’entrée. Ce résultat vérifie la calibration de la politique ; il ne prétend pas mesurer la précision sur le trafic BOAMP réel. Voir [`docs/radar-benchmark.md`](docs/radar-benchmark.md).
+
 N’envoyez jamais de secret, de donnée personnelle ni de dossier sensible non expurgé. Évaluez le comportement sur un jeu représentatif de cas français avant tout usage opérationnel.
 
 ## Parcours comparatif
@@ -130,6 +162,7 @@ npm run check
 npm run typecheck
 npm test
 npm run demo
+npm run benchmark:offline
 ```
 
 La CI exécute ces vérifications sous Node.js 22 et 24.

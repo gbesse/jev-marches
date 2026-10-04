@@ -1,5 +1,6 @@
 # Purpose: Keep generated, local, secret, and cache files out of version control.
 node_modules/
+.env
 .local/
 local-data/
 *.sqlite*
