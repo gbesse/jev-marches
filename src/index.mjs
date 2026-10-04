@@ -485,7 +485,10 @@ export async function buildOpportunityRadar(
   const counts = Object.fromEntries(
     ["pursue", "investigate", "ignore"].map((status) => [
       status,
-      rows.filter((row) => row.status === status).length,
+      rows.filter(
+        (row) =>
+          row.status === status && row.reason !== "budget_exhausted",
+      ).length,
     ]),
   );
   return {
@@ -516,7 +519,7 @@ export function renderOpportunityRadar(radar, { companyName = "Entreprise" } = {
     `# Marchés Radar · ${companyName}`,
     "",
     `${radar.counts.pursue} à poursuivre · ${radar.counts.investigate} à investiguer · ${radar.counts.ignore} ignorés`,
-    `Budget Jev : ${radar.budget.usedCalls}/${radar.budget.maxCalls} appels · politique ${radar.policyVersion}`,
+    `Budget Jev : ${radar.budget.usedCalls}/${radar.budget.maxCalls} appels${radar.budget.deferredNotices ? ` · ${radar.budget.deferredNotices} avis différés` : ""} · politique ${radar.policyVersion}`,
     "",
   ];
   if (!radar.opportunities.length)

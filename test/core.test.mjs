@@ -208,7 +208,7 @@ test("builds a ranked evidence-linked radar and never exceeds its call budget", 
     usedCalls: 1,
     deferredNotices: 1,
   });
-  assert.deepEqual(radar.counts, { pursue: 1, investigate: 1, ignore: 1 });
+  assert.deepEqual(radar.counts, { pursue: 1, investigate: 0, ignore: 1 });
   assert.equal(radar.opportunities[0].noticeId, "strong");
   assert.equal(radar.opportunities[0].status, "pursue");
   assert.match(radar.opportunities[0].evidence.sourceUrl, /boamp\.fr/);
