@@ -35,6 +35,10 @@ export function prefilter(
   profile: Record<string, any>,
   now?: Date,
 ): { eligible: boolean; reason?: string };
+export function candidateAffinity(
+  notice: Record<string, any>,
+  profile: CompanyOpportunityProfile,
+): number;
 export function assessNotice(
   notice: Record<string, any>,
   profile: Record<string, any>,
@@ -75,7 +79,7 @@ export function buildOpportunityRadar(
   schemaVersion: 1;
   policyVersion: string;
   generatedAt: string;
-  budget: { maxCalls: number; usedCalls: number };
+  budget: { maxCalls: number; usedCalls: number; deferredNotices: number };
   counts: Record<PursuitStatus, number>;
   usage: { input_tokens: number; output_tokens: number; requests: number };
   opportunities: any[];
