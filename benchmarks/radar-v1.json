@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "description": "Jeu de régression synthétique et public pour le contrat Marchés Radar. Les libellés vérifient des cas évidents ; ils ne mesurent pas la qualité sur le trafic BOAMP réel.",
+  "profiles": {
+    "it": {
+      "capabilities": "Développement d’API Node.js, intégration de données, maintenance applicative et cybersécurité cloud.",
+      "cpv": ["72"],
+      "departments": ["75", "92", "93", "94"],
+      "contractTypes": ["SERVICES"],
+      "minimumLeadDays": 14,
+      "excludedBuyers": ["Acheteur interdit"]
+    },
+    "cleaning": {
+      "capabilities": "Nettoyage de bureaux et surfaces vitrées, entretien courant de bâtiments publics en Île-de-France.",
+      "departments": ["75", "92", "93", "94"],
+      "contractTypes": ["SERVICES"],
+      "minimumLeadDays": 10
+    },
+    "logistics": {
+      "capabilities": "Distribution de plis et colis, logistique du dernier kilomètre et tournées nationales.",
+      "departments": ["*"],
+      "contractTypes": ["SERVICES", "FOURNITURES"],
+      "minimumLeadDays": 7
+    }
+  },
+  "cases": [
+    {
+      "id": "it-api",
+      "profile": "it",
+      "expected": "pursue",
+      "notice": { "title": "Développement et maintenance d’API pour un portail public", "text": "Conception d’API Node.js, intégration de données et maintenance corrective.", "cpv": ["72200000"], "departments": ["75"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "it-soc",
+      "profile": "it",
+      "expected": "pursue",
+      "notice": { "title": "Supervision de sécurité et réponse aux incidents cloud", "text": "Prestations SOC, surveillance et sécurisation d’environnements cloud.", "cpv": ["72212732"], "departments": ["92"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "cleaning-windows",
+      "profile": "cleaning",
+      "expected": "pursue",
+      "notice": { "title": "Nettoyage des surfaces vitrées de bâtiments municipaux", "text": "Entretien périodique des vitres et bureaux municipaux.", "departments": ["94"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "logistics-parcels",
+      "profile": "logistics",
+      "expected": "pursue",
+      "notice": { "title": "Collecte et distribution quotidienne de plis et colis", "text": "Tournées de collecte, tri et livraison sur le territoire national.", "departments": ["33"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "it-cleaning",
+      "profile": "it",
+      "expected": "ignore",
+      "notice": { "title": "Nettoyage des écoles et fourniture de consommables", "text": "Nettoyage quotidien de locaux scolaires.", "departments": ["75"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "cleaning-software",
+      "profile": "cleaning",
+      "expected": "ignore",
+      "notice": { "title": "Développement d’un logiciel de gestion financière", "text": "Conception d’une application web et maintenance du code.", "departments": ["75"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "logistics-medical",
+      "profile": "logistics",
+      "expected": "ignore",
+      "notice": { "title": "Fourniture de dispositifs médicaux implantables", "text": "Achat de matériel chirurgical certifié.", "departments": ["69"], "contractTypes": ["FOURNITURES"] }
+    },
+    {
+      "id": "it-consulting",
+      "profile": "it",
+      "expected": "investigate",
+      "notice": { "title": "Assistance à maîtrise d’ouvrage pour la transformation numérique", "text": "Conseil, cadrage et accompagnement d’un programme numérique.", "cpv": ["72224000"], "departments": ["93"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "expired",
+      "profile": "it",
+      "expected": "ignore",
+      "notice": { "title": "Maintenance d’une plateforme web", "text": "Maintenance Node.js.", "deadline": "2020-01-01T00:00:00.000Z", "departments": ["75"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "wrong-geography",
+      "profile": "cleaning",
+      "expected": "ignore",
+      "notice": { "title": "Nettoyage de bureaux à Marseille", "text": "Entretien de locaux.", "departments": ["13"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "wrong-cpv",
+      "profile": "it",
+      "expected": "ignore",
+      "notice": { "title": "Travaux de voirie", "text": "Réfection de chaussée.", "cpv": ["45233140"], "departments": ["75"], "contractTypes": ["SERVICES"] }
+    },
+    {
+      "id": "excluded-buyer",
+      "profile": "it",
+      "expected": "ignore",
+      "notice": { "title": "Développement d’API", "text": "API et intégration.", "buyer": "Acheteur interdit", "cpv": ["72200000"], "departments": ["75"], "contractTypes": ["SERVICES"] }
+    }
+  ]
+}

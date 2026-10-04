@@ -9,6 +9,20 @@ const strings = (value) =>
     .map(String)
     .filter(Boolean);
 
+const normalize = (value) =>
+  String(value ?? "")
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+
+const overlaps = (left = [], right = []) =>
+  left.some((a) =>
+    right.some(
+      (b) => String(a).startsWith(String(b)) || String(b).startsWith(String(a)),
+    ),
+  );
+
 function officialNoticeUrl(record) {
   const fallback = `https://www.boamp.fr/pages/avis/?q=idweb:${encodeURIComponent(record.idweb ?? record.id)}`;
   const url = new URL(record.url_avis || fallback);
@@ -40,7 +54,7 @@ export async function fetchBoampNotices({
   const response = await fetchImpl(url, {
     headers: {
       accept: "application/json",
-      "user-agent": "jev-marches/0.2 (+https://github.com/gbesse/jev-marches)",
+      "user-agent": "jev-marches/0.3 (+https://github.com/gbesse/jev-marches)",
     },
     redirect: "follow",
     signal: AbortSignal.timeout(timeoutMs),
@@ -64,6 +78,7 @@ export async function fetchBoampNotices({
     const buyer = String(record.nomacheteur ?? "").trim() || null;
     const departments = strings(record.code_departement);
     const descriptors = strings(record.descripteur_libelle);
+    const cpv = strings(record.descripteur_code);
     const contractTypes = strings(record.type_marche);
     notices.push({
       id,
@@ -73,6 +88,7 @@ export async function fetchBoampNotices({
         title,
         buyer ? `Acheteur: ${buyer}` : null,
         descriptors.length ? `Descripteurs: ${descriptors.join(", ")}` : null,
+        cpv.length ? `CPV: ${cpv.join(", ")}` : null,
         contractTypes.length ? `Type: ${contractTypes.join(", ")}` : null,
         departments.length ? `Départements: ${departments.join(", ")}` : null,
         deadline ? `Date limite: ${deadline.toISOString()}` : null,
@@ -83,6 +99,7 @@ export async function fetchBoampNotices({
       buyer,
       departments,
       descriptors,
+      cpv,
       contractTypes,
       deadline: deadline?.toISOString() ?? null,
       date:
@@ -104,15 +121,92 @@ export function prefilter(notice, profile, now = new Date()) {
     const deadline = new Date(notice.deadline);
     if (Number.isNaN(deadline.valueOf()))
       throw new TypeError("notice.deadline must be an ISO date");
-    if (deadline <= now) return { eligible: false, reason: "deadline_passed" };
+    if (deadline <= now)
+      return {
+        eligible: false,
+        reason: "deadline_passed",
+        evidence: { deadline: deadline.toISOString() },
+      };
+    const leadDays = (deadline.valueOf() - now.valueOf()) / 86_400_000;
+    if (
+      Number.isFinite(profile.minimumLeadDays) &&
+      leadDays < profile.minimumLeadDays
+    )
+      return {
+        eligible: false,
+        reason: "insufficient_lead_time",
+        evidence: {
+          availableDays: Math.max(0, Math.floor(leadDays)),
+          requiredDays: profile.minimumLeadDays,
+        },
+      };
   }
   if (
     profile.cpv?.length &&
     notice.cpv?.length &&
-    !notice.cpv.some((x) => profile.cpv.includes(x))
+    !overlaps(notice.cpv, profile.cpv)
   )
-    return { eligible: false, reason: "cpv_out_of_scope" };
-  return { eligible: true };
+    return {
+      eligible: false,
+      reason: "cpv_out_of_scope",
+      evidence: { notice: notice.cpv, profile: profile.cpv },
+    };
+  if (
+    profile.departments?.length &&
+    !profile.departments.includes("*") &&
+    notice.departments?.length &&
+    !overlaps(notice.departments, profile.departments)
+  )
+    return {
+      eligible: false,
+      reason: "geography_out_of_scope",
+      evidence: {
+        notice: notice.departments,
+        profile: profile.departments,
+      },
+    };
+  if (
+    profile.contractTypes?.length &&
+    notice.contractTypes?.length &&
+    !overlaps(
+      notice.contractTypes.map((value) => String(value).toUpperCase()),
+      profile.contractTypes.map((value) => String(value).toUpperCase()),
+    )
+  )
+    return {
+      eligible: false,
+      reason: "contract_type_out_of_scope",
+      evidence: {
+        notice: notice.contractTypes,
+        profile: profile.contractTypes,
+      },
+    };
+  if (
+    normalize(notice.buyer) &&
+    profile.excludedBuyers?.some((buyer) => {
+      const excluded = normalize(buyer);
+      return excluded && normalize(notice.buyer).includes(excluded);
+    })
+  )
+    return {
+      eligible: false,
+      reason: "buyer_excluded",
+      evidence: { buyer: notice.buyer },
+    };
+  if (
+    Number.isFinite(profile.maxEstimatedValue) &&
+    Number.isFinite(notice.estimatedValue) &&
+    notice.estimatedValue > profile.maxEstimatedValue
+  )
+    return {
+      eligible: false,
+      reason: "contract_value_too_high",
+      evidence: {
+        notice: notice.estimatedValue,
+        profile: profile.maxEstimatedValue,
+      },
+    };
+  return { eligible: true, evidence: null };
 }
 export async function assessNotice(notice, profile, provider, options = {}) {
   const pre = prefilter(notice, profile, options.now || new Date());
@@ -148,6 +242,10 @@ export async function assessNotice(notice, profile, provider, options = {}) {
   });
   const f = r.answers.fit,
     b = r.answers.blocker;
+  const fitStrongProbability =
+    (f.probabilities?.[2] ?? 0) + (f.probabilities?.[3] ?? 0);
+  const fitWeakProbability =
+    (f.probabilities?.[0] ?? 0) + (f.probabilities?.[1] ?? 0);
   return {
     noticeId: notice.id,
     eligible: true,
@@ -155,13 +253,220 @@ export async function assessNotice(notice, profile, provider, options = {}) {
     fitConfidence: f.confidence,
     // Kept for 0.1 consumers; a continuous expected score is not a probability-map key.
     fitProbability: f.confidence,
+    fitDistribution: f.probabilities,
+    fitStrongProbability,
+    fitWeakProbability,
     blocker: b.choice,
+    blockerProbability: b.probabilities?.[b.choice] ?? b.confidence,
+    blockerDistribution: b.probabilities,
     review:
       Math.min(f.confidence, b.confidence) < (options.minConfidence ?? 0.8) ||
       b.choice === "unknown",
     usage: r.usage,
     deterministic: false,
   };
+}
+
+export const RADAR_POLICY_VERSION = "opportunity-radar/1.0.0";
+
+/** Convert an assessed notice into an operator-facing action without inventing a probability of winning. */
+export function decidePursuit(
+  assessment,
+  {
+    pursueFit = 2.3,
+    ignoreFit = 1.25,
+    minConfidence = 0.8,
+    minDecisionMass = 0.75,
+  } = {},
+) {
+  if (!assessment.eligible)
+    return {
+      status: "ignore",
+      reason: assessment.reason,
+      confidence: 1,
+    };
+  if (assessment.reason === "budget_exhausted")
+    return { status: "investigate", reason: assessment.reason, confidence: 0 };
+  if (assessment.reason === "provider_error")
+    return { status: "investigate", reason: assessment.reason, confidence: 0 };
+  const confidence = assessment.fitConfidence ?? 0;
+  const fallbackMass = confidence >= minConfidence ? confidence : 0;
+  const strongMass = assessment.fitStrongProbability ?? fallbackMass;
+  const weakMass = assessment.fitWeakProbability ?? fallbackMass;
+  if (
+    assessment.fit >= pursueFit &&
+    strongMass >= minDecisionMass &&
+    assessment.blocker === "none"
+  )
+    return {
+      status: "pursue",
+      reason: "strong_fit",
+      confidence: strongMass,
+    };
+  if (
+    assessment.fit <= ignoreFit &&
+    weakMass >= minDecisionMass
+  )
+    return { status: "ignore", reason: "weak_fit", confidence: weakMass };
+  return {
+    status: "investigate",
+    reason:
+      assessment.blocker === "none"
+        ? "uncertain_fit"
+        : `blocker_${assessment.blocker}`,
+    confidence,
+  };
+}
+
+function noticeEvidence(notice) {
+  return {
+    title: notice.title,
+    buyer: notice.buyer ?? null,
+    deadline: notice.deadline ?? null,
+    departments: notice.departments ?? [],
+    descriptors: notice.descriptors ?? [],
+    contractTypes: notice.contractTypes ?? [],
+    sourceUrl: notice.sourceUrl ?? null,
+    source: notice.source ?? null,
+  };
+}
+
+/** Build one auditable daily opportunity inbox under an explicit provider-call budget. */
+export async function buildOpportunityRadar(
+  notices,
+  profile,
+  provider,
+  {
+    maxCalls = 20,
+    maxResults = 5,
+    now = new Date(),
+    minConfidence = 0.8,
+    minDecisionMass = 0.75,
+    pursueFit = 2.3,
+    ignoreFit = 1.25,
+  } = {},
+) {
+  if (!Array.isArray(notices) || notices.length > 100)
+    throw new TypeError("notices must be an array of at most 100 items");
+  if (!(Number.isInteger(maxCalls) && maxCalls >= 0 && maxCalls <= 100))
+    throw new TypeError("maxCalls must be an integer between 0 and 100");
+  if (!(Number.isInteger(maxResults) && maxResults >= 1 && maxResults <= 20))
+    throw new TypeError("maxResults must be an integer between 1 and 20");
+  const rows = [];
+  let calls = 0;
+  const usage = { input_tokens: 0, output_tokens: 0, requests: 0 };
+  for (const notice of notices) {
+    const deterministic = prefilter(notice, profile, now);
+    let assessment;
+    if (!deterministic.eligible) {
+      assessment = {
+        noticeId: notice.id,
+        ...deterministic,
+        deterministic: true,
+      };
+    } else if (calls >= maxCalls) {
+      assessment = {
+        noticeId: notice.id,
+        eligible: true,
+        reason: "budget_exhausted",
+        deterministic: true,
+      };
+    } else {
+      calls++;
+      usage.requests++;
+      try {
+        assessment = await assessNotice(notice, profile, provider, {
+          now,
+          minConfidence,
+        });
+        usage.input_tokens += assessment.usage?.input_tokens ?? 0;
+        usage.output_tokens += assessment.usage?.output_tokens ?? 0;
+      } catch (error) {
+        assessment = {
+          noticeId: notice.id,
+          eligible: true,
+          reason: "provider_error",
+          providerError: {
+            name: error instanceof Error ? error.name : "Error",
+            status: Number.isInteger(error?.status) ? error.status : null,
+          },
+          deterministic: false,
+        };
+      }
+    }
+    rows.push({
+      noticeId: notice.id,
+      ...decidePursuit(assessment, {
+        pursueFit,
+        ignoreFit,
+        minConfidence,
+        minDecisionMass,
+      }),
+      assessment,
+      evidence: noticeEvidence(notice),
+    });
+  }
+  const priority = { pursue: 0, investigate: 1, ignore: 2 };
+  rows.sort(
+    (left, right) =>
+      priority[left.status] - priority[right.status] ||
+      (right.assessment.fit ?? -1) - (left.assessment.fit ?? -1) ||
+      left.noticeId.localeCompare(right.noticeId),
+  );
+  const counts = Object.fromEntries(
+    ["pursue", "investigate", "ignore"].map((status) => [
+      status,
+      rows.filter((row) => row.status === status).length,
+    ]),
+  );
+  return {
+    schemaVersion: 1,
+    policyVersion: RADAR_POLICY_VERSION,
+    generatedAt: new Date(now).toISOString(),
+    budget: { maxCalls, usedCalls: calls },
+    counts,
+    usage,
+    opportunities: rows
+      .filter((row) => row.status !== "ignore")
+      .slice(0, maxResults),
+    decisions: rows,
+  };
+}
+
+export function renderOpportunityRadar(radar, { companyName = "Entreprise" } = {}) {
+  const lines = [
+    `# Marchés Radar · ${companyName}`,
+    "",
+    `${radar.counts.pursue} à poursuivre · ${radar.counts.investigate} à investiguer · ${radar.counts.ignore} ignorés`,
+    `Budget Jev : ${radar.budget.usedCalls}/${radar.budget.maxCalls} appels · politique ${radar.policyVersion}`,
+    "",
+  ];
+  if (!radar.opportunities.length)
+    lines.push("Aucune opportunité retenue dans cette fenêtre.", "");
+  for (const row of radar.opportunities) {
+    lines.push(
+      `## ${row.status === "pursue" ? "Poursuivre" : "Investiguer"} · ${row.evidence.title}`,
+      "",
+      `- Motif : ${row.reason}`,
+      `- Acheteur : ${row.evidence.buyer ?? "non renseigné"}`,
+      `- Échéance : ${row.evidence.deadline ?? "non renseignée"}`,
+      ...(Number.isFinite(row.assessment.fit)
+        ? [
+            `- Adéquation : ${row.assessment.fit.toFixed(2)}/3 · confiance ${((row.assessment.fitConfidence ?? 0) * 100).toFixed(1)} %`,
+            `- Frein principal : ${row.assessment.blocker}`,
+          ]
+        : []),
+      row.evidence.sourceUrl
+        ? `- Source : [${row.evidence.source ?? "avis officiel"}](${row.evidence.sourceUrl})`
+        : `- Source : ${row.evidence.source ?? "non renseignée"}`,
+      "",
+    );
+  }
+  lines.push(
+    "Décision de prospection à valider humainement ; ce radar ne garantit ni l’éligibilité ni l’attribution d’un marché.",
+    "",
+  );
+  return `${lines.join("\n")}\n`;
 }
 export async function rankNotices(notices, profile, provider, options = {}) {
   const rows = [];
