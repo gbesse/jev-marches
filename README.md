@@ -2,7 +2,7 @@
 
 **Trie les avis de marchés publics français selon les capacités déclarées d’une entreprise.**
 
-[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.4 · Documentation française
+[![Tests](https://github.com/gbesse/jev-marches/actions/workflows/test.yml/badge.svg)](https://github.com/gbesse/jev-marches/actions/workflows/test.yml) [MIT](LICENSE) · Node.js 22+ · v0.3.5 · Documentation française
 
 Jev Marchés récupère et normalise les avis récents depuis l’API ouverte BOAMP/DILA. **Marchés Radar** transforme ensuite la veille en une liste bornée d’actions `pursue`, `investigate` ou `ignore`, avec motif, source officielle et budget Jev explicite.
 
@@ -170,3 +170,11 @@ npm run benchmark:offline
 La CI exécute ces vérifications sous Node.js 22 et 24.
 
 Projet indépendant, sans affiliation avec TypeSafe AI ni avec l’administration française. Consultez la [documentation de l’API Jev](https://docs.typesafe.ai/api) et les [limites du modèle](https://docs.typesafe.ai/model-jaggedness/jev-1.13).
+
+## October 2026 improvement · Amélioration d’octobre 2026 · Mejora de octubre de 2026
+
+Run `npm run demo:affinity` to inspect how title, body and unrelated matches receive different deterministic retrieval scores before any model call.
+
+Exécutez `npm run demo:affinity` pour voir les scores de recherche déterministes d’un titre, d’un corps de texte et d’un avis sans rapport, avant tout appel au modèle.
+
+Ejecute `npm run demo:affinity` para ver las puntuaciones deterministas de un título, un texto y un aviso no relacionado antes de llamar al modelo.
